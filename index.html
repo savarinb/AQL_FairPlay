@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AQLフェアプレイ規定 検索ツール</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AQLフェアプレイ規定 検索ツール</h1>
+        </header>
+
+```
+    <div class="search-section">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="キーワードを入力してください..." autocomplete="off">
+            <button type="button" id="clearButton">クリア</button>
+        </div>
+
+        <div class="filter-section">
+            <label for="categorySelect">カテゴリで絞り込み：</label>
+            <select id="categorySelect" multiple size="4">
+                <option value="">すべてのカテゴリ</option>
+            </select>
+            <button type="button" id="clearCategoryButton">カテゴリクリア</button>
+        </div>
+    </div>
+
+    <div class="results-section">
+        <div id="resultsCount" class="results-count"></div>
+        <div id="resultsContainer" class="results-container"></div>
+    </div>
+
+    <div id="noResults" class="no-results" style="display: none;">
+        <p>検索条件に一致する規定が見つかりませんでした。</p>
+    </div>
+</div>
+
+<script src="script.js"></script>
+```
+
+</body>
+</html>
