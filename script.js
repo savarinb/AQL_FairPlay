@@ -1,54 +1,22 @@
-// フェアプレイ規定データ
-const data = [
-    {
-        id: "第1条",
-        title: "遅延行為の禁止",
-        text: "競技において意図的な遅延行為は禁止する。これには無操作による時間稼ぎ、不要な思考時間の延長、故意の機材トラブル申告等が含まれる。",
-        category: ["遅延行為", "進行妨害"],
-        faq: ["どこまでが遅延行為に該当しますか？", "無操作による時間経過も含まれますか？", "思考時間の制限はありますか？"]
-    },
-    {
-        id: "第2条",
-        title: "機材トラブルの報告義務",
-        text: "使用機材に問題が発生した場合は速やかに運営スタッフに報告すること。虚偽の報告や故意の機材破損は厳重に処罰される。",
-        category: ["機材トラブル", "報告義務"],
-        faq: ["どの程度の不具合で報告すべきですか？", "機材の交換は可能ですか？"]
-    },
-    {
-        id: "第3条",
-        title: "対戦相手への敬意",
-        text: "全ての参加者は対戦相手に対して敬意を払い、スポーツマンシップに則った行動を取ること。暴言、煽り行為、威嚇行為は一切禁止する。",
-        category: ["スポーツマンシップ", "対戦マナー"],
-        faq: ["どのような発言が暴言に該当しますか？", "対戦後の握手は必須ですか？", "SNSでの発言も対象になりますか？"]
-    }
-];
+// DOM要素の取得
+const searchInput = document.getElementById('searchInput');
+const categorySelect = document.getElementById('categorySelect');
+const searchButton = document.getElementById('searchButton');
+const resetButton = document.getElementById('resetButton');
+const results = document.getElementById('results');
+const noResults = document.getElementById('noResults');
+const resultCount = document.getElementById('resultCount');
 
-let allCategories = [];
-let filteredData = [...data];
-
-// ページ読み込み時の初期化
+// 初期化
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+    initializeCategorySelect();
+    displayAllResults();
+    bindEvents();
 });
 
-function initializeApp() {
-    // カテゴリ一覧を生成
-    generateCategories();
-    // 初期表示（全件表示）
-    displayResults(data);
-    // イベントリスナーを設定
-    setupEventListeners();
-}
-
-function generateCategories() {
-    const categorySet = new Set();
-    data.forEach(item => {
-        item.category.forEach(cat => categorySet.add(cat));
-    });
-    allCategories = [...categorySet].sort();
-    
-    const categorySelect = document.getElementById('categorySelect');
-    allCategories.forEach(category => {
+// カテゴリセレクトボックスの初期化
+function initializeCategorySelect() {
+    categories.forEach(category => {
         const option = document.createElement('option');
         option.value = category;
         option.textContent = category;
@@ -56,95 +24,186 @@ function generateCategories() {
     });
 }
 
-function setupEventListeners() {
-    const searchInput = document.getElementById('searchInput');
-    const categorySelect = document.getElementById('categorySelect');
-    const searchButton = document.getElementById('searchButton');
-
-    // リアルタイム検索
-    searchInput.addEventListener('input', performSearch);
-    categorySelect.addEventListener('change', performSearch);
+// イベントリスナーの設定
+function bindEvents() {
     searchButton.addEventListener('click', performSearch);
-
-    // Enterキーでの検索
+    resetButton.addEventListener('click', resetSearch);
     searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             performSearch();
         }
     });
+    categorySelect.addEventListener('change', performSearch);
+    searchInput.addEventListener('input', debounce(performSearch, 300));
 }
 
+// デバウンス関数（入力中の連続実行を防ぐ）
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// 検索実行
 function performSearch() {
-    const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-    const selectedCategories = Array.from(document.getElementById('categorySelect').selectedOptions)
-        .map(option => option.value)
-        .filter(value => value !== '');
-
-    filteredData = data.filter(item => {
-        // キーワード検索
-        const keywordMatch = keyword === '' || 
-            item.title.toLowerCase().includes(keyword) || 
-            item.text.toLowerCase().includes(keyword);
-
-        // カテゴリ検索
-        const categoryMatch = selectedCategories.length === 0 || 
-            selectedCategories.some(cat => item.category.includes(cat));
-
-        return keywordMatch && categoryMatch;
-    });
-
-    displayResults(filteredData, keyword);
+    const keyword = searchInput.value.trim().toLowerCase();
+    const selectedCategory = categorySelect.value;
+    
+    let filteredData = fairplayData;
+    
+    // カテゴリフィルタ
+    if (selectedCategory) {
+        filteredData = filteredData.filter(item => item.category === selectedCategory);
+    }
+    
+    // キーワード検索（条文とFAQの両方を検索対象とする）
+    if (keyword) {
+        filteredData = filteredData.filter(item => 
+            item.rule.toLowerCase().includes(keyword) ||
+            item.faq.toLowerCase().includes(keyword) ||
+            item.category.toLowerCase().includes(keyword)
+        );
+    }
+    
+    displayResults(filteredData);
 }
 
-function displayResults(results, keyword = '') {
-    const resultsInfo = document.getElementById('resultsInfo');
-    const resultsContainer = document.getElementById('resultsContainer');
+// 検索リセット
+function resetSearch() {
+    searchInput.value = '';
+    categorySelect.value = '';
+    displayAllResults();
+}
 
-    // 結果件数の表示
-    resultsInfo.textContent = `${results.length}件の規定が見つかりました`;
+// 全件表示
+function displayAllResults() {
+    displayResults(fairplayData);
+}
 
-    if (results.length === 0) {
-        resultsContainer.innerHTML = '<div class="no-results">該当する規定が見つかりませんでした</div>';
+// 検索結果の表示
+function displayResults(data) {
+    if (data.length === 0) {
+        showNoResults();
         return;
     }
-
-    // 結果の表示
-    resultsContainer.innerHTML = results.map(item => {
-        const highlightedTitle = highlightText(item.title, keyword);
-        const highlightedText = highlightText(item.text, keyword);
-        
-        const categoriesHtml = item.category.map(cat => 
-            `<span class="category-tag">${cat}</span>`
-        ).join('');
-
-        const faqHtml = item.faq.length > 0 ? `
-            <div class="faq-section">
-                <div class="faq-title">よくある質問</div>
-                ${item.faq.map(faq => `<div class="faq-item">${faq}</div>`).join('')}
-            </div>
-        ` : '';
-
-        return `
-            <div class="rule-card">
-                <div class="rule-header">
-                    <div class="rule-id">${item.id}</div>
-                    <div class="rule-title">${highlightedTitle}</div>
-                </div>
-                <div class="rule-text">${highlightedText}</div>
-                <div class="categories">${categoriesHtml}</div>
-                ${faqHtml}
-            </div>
-        `;
-    }).join('');
+    
+    showResultCount(data.length);
+    
+    results.innerHTML = '';
+    results.style.display = 'block';
+    noResults.style.display = 'none';
+    
+    data.forEach(item => {
+        const card = createResultCard(item);
+        results.appendChild(card);
+    });
+    
+    // スクロール位置を結果の先頭に移動（モバイルでの利便性向上）
+    if (window.innerWidth <= 768 && data.length > 0) {
+        results.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
+// 検索結果なしの表示
+function showNoResults() {
+    results.style.display = 'none';
+    noResults.style.display = 'block';
+    resultCount.style.display = 'none';
+}
+
+// 検索結果件数の表示
+function showResultCount(count) {
+    resultCount.textContent = `${count}件の規定が見つかりました`;
+    resultCount.style.display = 'block';
+}
+
+// 結果カードの作成
+function createResultCard(item) {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    
+    // キーワードハイライト機能
+    const keyword = searchInput.value.trim();
+    const highlightedRule = highlightText(item.rule, keyword);
+    const highlightedFaq = highlightText(item.faq, keyword);
+    
+    card.innerHTML = `
+        <div class="card-header">
+            <h5 class="mb-0">規定 ${item.id}</h5>
+            <span class="category-badge">${item.category}</span>
+        </div>
+        <div class="card-body">
+            <div class="rule-section">
+                <div class="section-title">
+                    <i class="fas fa-book text-primary"></i>
+                    条文
+                </div>
+                <div class="rule-text">${highlightedRule}</div>
+            </div>
+            <div class="faq-section">
+                <div class="section-title">
+                    <i class="fas fa-question-circle text-success"></i>
+                    FAQ
+                </div>
+                <div class="faq-text">${highlightedFaq}</div>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+// テキストハイライト機能
 function highlightText(text, keyword) {
     if (!keyword) return text;
     
-    const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
-    return text.replace(regex, '<span class="highlight">$1</span>');
+    const regex = new RegExp(`(${escapeRegex(keyword)})`, 'gi');
+    return text.replace(regex, '<mark style="background-color: #ffeb3b; padding: 0.1em 0.2em; border-radius: 3px;">$1</mark>');
 }
 
-function escapeRegExp(string) {
+// 正規表現用エスケープ
+function escapeRegex(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// スムーズスクロール機能（検索結果への移動）
+function scrollToResults() {
+    if (results.children.length > 0) {
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// エラーハンドリング
+window.addEventListener('error', function(e) {
+    console.error('エラーが発生しました:', e.error);
+    // ユーザーに見やすいエラーメッセージを表示
+    if (results) {
+        results.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">エラーが発生しました</h4>
+                <p>申し訳ございませんが、検索機能でエラーが発生しました。ページを再読み込みしてお試しください。</p>
+            </div>
+        `;
+    }
+});
+
+// パフォーマンス最適化：大量データ対応（将来的な拡張に備えて）
+function optimizeForLargeDataset(data) {
+    // 1000件以上のデータの場合は仮想スクロールなどを実装
+    if (data.length > 1000) {
+        console.warn('大量のデータが検出されました。パフォーマンス最適化が推奨されます。');
+    }
+    return data;
+}
+
+// モバイル対応：タッチイベントの最適化
+if ('ontouchstart' in window) {
+    // タッチデバイスの場合の最適化処理
+    document.body.classList.add('touch-device');
 }
