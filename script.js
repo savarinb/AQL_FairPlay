@@ -103,11 +103,6 @@ function displayResults(data) {
         const card = createResultCard(item);
         results.appendChild(card);
     });
-    
-    // スクロール位置を結果の先頭に移動（モバイルでの利便性向上）
-    if (window.innerWidth <= 768 && data.length > 0) {
-        results.scrollIntoView({ behavior: 'smooth' });
-    }
 }
 
 // 検索結果なしの表示
